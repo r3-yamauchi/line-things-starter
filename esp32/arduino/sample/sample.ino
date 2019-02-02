@@ -9,6 +9,7 @@
 // User service UUID: Change this to your generated service UUID
 #define USER_SERVICE_UUID "3e4b819a-3bbb-4b58-8054-426966a4d637"
 // User service characteristics
+#define READ_CHARACTERISTIC_UUID "ecd94740-1667-4685-b83b-a075a0678f5b"
 #define WRITE_CHARACTERISTIC_UUID "E9062E71-9E62-4BC6-B0D3-35CDCD9B027B"
 #define NOTIFY_CHARACTERISTIC_UUID "62FBD229-6EDD-4D1A-B554-5C4E1BB29169"
 
@@ -24,6 +25,7 @@ BLESecurity *thingsSecurity;
 BLEService* userService;
 BLEService* psdiService;
 BLECharacteristic* psdiCharacteristic;
+BLECharacteristic* readCharacteristic;
 BLECharacteristic* writeCharacteristic;
 BLECharacteristic* notifyCharacteristic;
 
@@ -72,6 +74,8 @@ void setup() {
   Serial.println("Ready to Connect");
 }
 
+int btnCount = 0;
+
 void loop() {
   uint8_t btnValue;
 
@@ -81,6 +85,11 @@ void loop() {
     notifyCharacteristic->setValue(&btnValue, 1);
     notifyCharacteristic->notify();
     delay(20);
+
+    if (btnValue) {
+      btnCount++;
+      readCharacteristic->setValue(btnCount);
+    }
   }
   // Disconnection
   if (!deviceConnected && oldDeviceConnected) {
@@ -101,7 +110,12 @@ void setupServices(void) {
 
   // Setup User Service
   userService = thingsServer->createService(USER_SERVICE_UUID);
+
   // Create Characteristics for User Service
+  readCharacteristic = userService->createCharacteristic(READ_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_READ);
+  readCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED);
+  readCharacteristic->setValue(0);
+
   writeCharacteristic = userService->createCharacteristic(WRITE_CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_WRITE);
   writeCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
   writeCharacteristic->setCallbacks(new writeCallback());
